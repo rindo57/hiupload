@@ -1,5 +1,5 @@
-root_folder = "batch1"  # Path of the local folder to upload
-root_name = "Anime"  # Name of the root folder in the TGDrive
+root_folder = input("Enter the path of the local folder to upload: ").strip()
+root_name = input("Enter the name of the root folder in the Hi-Drive: ").strip()
 
 import os
 import sys
