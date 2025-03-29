@@ -4,6 +4,7 @@ import os
 # Load environment variables from the .env file, if present
 load_dotenv()
 
+mongo_uri = "mongodb+srv://diablo:OH4WLGrCZOlG6FH6@cluster0.qokt3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 # Telegram API credentials obtained from https://my.telegram.org/auth
 API_ID=10247139
 API_HASH="96b46175824223a33737657ab943fd6a"
