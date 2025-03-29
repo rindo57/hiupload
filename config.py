@@ -3,16 +3,17 @@ import os
 
 # Load environment variables from the .env file, if present
 load_dotenv()
-
+# MongoDB Database URI
 mongo_uri = "mongodb+srv://diablo:OH4WLGrCZOlG6FH6@cluster0.qokt3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
 # Telegram API credentials obtained from https://my.telegram.org/auth
 API_ID=10247139
 API_HASH="96b46175824223a33737657ab943fd6a"
-
 BOT_TOKENSX = os.getenv("BOT_TOKENS", "6769415354:AAHh7IfKn11PWuNxUo0qmoIuW7NclxaaFHQ").strip(", ").split(",")
-#BOT_TOKENS = os.getenv("BOT_TOKENS", "7341876935:AAGA0OsJjpGgWHnGK_MKMWoWpKRfkDgushI").strip(", ").split(",")
 BOT_TOKENSX = [token.strip() for token in BOT_TOKENSX if token.strip() != ""]
 
+#Set True if you need to delete file after uploads
+FILE_DEL = True
 # List of Premium Telegram Account Pyrogram String Sessions used for file upload/download operations
 STRING_SESSIONS = os.getenv("STRING_SESSIONS", "").strip(", ").split(",")
 STRING_SESSIONS = [
@@ -21,8 +22,6 @@ STRING_SESSIONS = [
 
 # Chat ID of the Telegram storage channel where files will be stored
 STORAGE_CHANNEL = -1001322241772
-
-# Message ID of a file in the storage channel used for storing database backups
 
 
 # Determine the maximum file size (in bytes) allowed for uploading to Telegram
@@ -42,14 +41,6 @@ SLEEP_THRESHOLD = int(os.getenv("SLEEP_THRESHOLD", 60))  # Default to 60 seconds
 
 # Domain to auto-ping and keep the website active
 WEBSITE_URL = os.getenv("WEBSITE_URL", None)
-
-
-# For Using TG Drive's Bot Mode
-
-
-#MAIN_BOT_TOKEN = os.getenv("MAIN_BOT_TOKEN", "7341876935:AAGA0OsJjpGgWHnGK_MKMWoWpKRfkDgushI")
-if MAIN_BOT_TOKEN.strip() == "":
-    MAIN_BOT_TOKEN = None
 
 # List of Telegram User IDs who have admin access to the bot mode
 TELEGRAM_ADMIN_IDS = os.getenv("TELEGRAM_ADMIN_IDS", "6542409825, 1498366357, 5419097944, 162010513, 590009569, 1863307059").strip(", ").split(",")
