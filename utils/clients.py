@@ -29,6 +29,7 @@ async def initialize_clients2():
             logger.info(f"Starting - {type.title()} Client {client_id}")
 
             if type == "bot":
+                print("bot client start")
                 client = await Client(
                     name=str(client_id),
                     api_id=config.API_ID,
@@ -42,6 +43,7 @@ async def initialize_clients2():
                     config.STORAGE_CHANNEL,
                     f"Started - {type.title()} Client {client_id}",
                 )
+                print("bot client is nd")
                 multi_clients[client_id] = client
                 work_loads[client_id] = 0
             elif type == "user":
