@@ -8,7 +8,7 @@ import time
 from tqdm import tqdm
 import logging
 
-from config import BOT_TOKENS
+from config import BOT_TOKENSX
 from utils.clients import initialize_clients2
 from utils.directoryHandler import getRandomID
 from utils.uploader import start_file_uploader2
