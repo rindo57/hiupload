@@ -36,8 +36,8 @@ async def initialize_clients2():
                     api_hash=config.API_HASH,
                     bot_token=token,
                     sleep_threshold=config.SLEEP_THRESHOLD,
-                    workdir=session_cache_path,
-                    no_updates=True,
+                    workdir=session_cache_path
+                  #  no_updates=True,
                 ).start()
                 await client.send_message(
                     config.STORAGE_CHANNEL,
@@ -54,7 +54,7 @@ async def initialize_clients2():
                     session_string=token,
                     sleep_threshold=config.SLEEP_THRESHOLD,
                     workdir=session_cache_path,
-                    no_updates=True,
+                  #  no_updates=True
                 ).start()
                 await client.send_message(
                     config.STORAGE_CHANNEL,
