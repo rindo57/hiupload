@@ -1,7 +1,7 @@
 from utils.clients import get_client
 from pyrogram import Client
 from pyrogram.types import Message
-from config import STORAGE_CHANNEL, FIL_DEL
+from config import STORAGE_CHANNEL, FILE_DEL
 from utils.logger import Logger
 from urllib.parse import unquote_plus
 from pymediainfo import MediaInfo
