@@ -1,7 +1,7 @@
 import asyncio, config
 from pathlib import Path
 from pyrogram import Client
-from utils.directoryHandler import loadDriveData, loadDriveData2  # Removed backup_drive_data
+from utils.directoryHandler import loadDriveData2  # Removed backup_drive_data
 from utils.logger import Logger
 
 logger = Logger(__name__)
