@@ -9,7 +9,7 @@ mongo_uri = "mongodb+srv://diablo:OH4WLGrCZOlG6FH6@cluster0.qokt3.mongodb.net/?r
 # Telegram API credentials obtained from https://my.telegram.org/auth
 API_ID=10247139
 API_HASH="96b46175824223a33737657ab943fd6a"
-BOT_TOKENSX = os.getenv("BOT_TOKENS", "6769415354:AAHh7IfKn11PWuNxUo0qmoIuW7NclxaaFHQ").strip(", ").split(",")
+BOT_TOKENSX = os.getenv("BOT_TOKENS", "6769415354:AAHh7IfKn11PWuNxUo0qmoIuW7NclxaaFHQ, 8081002376:AAGvj-wBC_4EWKUu_XT_F-rDL6nwV1LAERs").strip(", ").split(",")
 BOT_TOKENSX = [token.strip() for token in BOT_TOKENSX if token.strip() != ""]
 
 #Set True if you need to delete file after uploads
