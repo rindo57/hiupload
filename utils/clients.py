@@ -13,11 +13,11 @@ premium_work_loads = {}
 main_bot = None
 
 async def initialize_clients2():
+    """
+    Initialize additional clients using another set of tokens and sessions from config.
+    """
     global multi_clients, work_loads, premium_clients, premium_work_loads
     logger.info("Initializing Clients")
-
-    session_cache_path = Path(f"./cache")
-    session_cache_path.parent.mkdir(parents=True, exist_ok=True)
 
     all_tokens = dict((i, t) for i, t in enumerate(config.BOT_TOKENSX, start=1))
     all_sessions = dict(
@@ -29,23 +29,21 @@ async def initialize_clients2():
             logger.info(f"Starting - {type.title()} Client {client_id}")
 
             if type == "bot":
-                print("bot client start")
                 client = await Client(
                     name=str(client_id),
                     api_id=config.API_ID,
                     api_hash=config.API_HASH,
                     bot_token=token,
                     sleep_threshold=config.SLEEP_THRESHOLD,
-                    workdir=session_cache_path
-                  #  no_updates=True,
+                    no_updates=True,
                 ).start()
                 await client.send_message(
                     config.STORAGE_CHANNEL,
                     f"Started - {type.title()} Client {client_id}",
                 )
-                print("bot client is nd")
                 multi_clients[client_id] = client
                 work_loads[client_id] = 0
+
             elif type == "user":
                 client = await Client(
                     name=str(client_id),
@@ -53,8 +51,7 @@ async def initialize_clients2():
                     api_hash=config.API_HASH,
                     session_string=token,
                     sleep_threshold=config.SLEEP_THRESHOLD,
-                    workdir=session_cache_path,
-                  #  no_updates=True
+                    no_updates=True,
                 ).start()
                 await client.send_message(
                     config.STORAGE_CHANNEL,
@@ -81,6 +78,7 @@ async def initialize_clients2():
             ]
         )
     )
+
     if len(multi_clients) == 0:
         logger.error("No Clients Were Initialized")
         exit(1)
@@ -88,6 +86,8 @@ async def initialize_clients2():
         logger.info("No Premium Clients Were Initialized")
 
     logger.info("Clients Initialized")
+    
+    # Load additional drive data asynchronously
     await loadDriveData2()
  
 
