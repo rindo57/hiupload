@@ -1,12 +1,10 @@
-root_folder = input("Enter the path of the local folder to upload: ").strip()
-root_name = input("Enter the name of the root folder in the Hi-Drive: ").strip()
-uploader = input("Uploader Name?: ").strip()
 import os
 import sys
 import asyncio
 import time
 from tqdm import tqdm
 import logging
+from pathlib import Path
 
 from config import BOT_TOKENSX
 from utils.clients import initialize_clients2
@@ -48,38 +46,44 @@ def convert_class_to_dict(data, isObject, showtrash=False):
                     "upload_date": file.upload_date,
                 }
     return new_data
-# Get immediate subdirectories (not recursive) from the given folder.
+
 def get_all_folders(root_folder):
-    folders = [
-        os.path.join(root_folder, d)
-        for d in os.listdir(root_folder)
-        if os.path.isdir(os.path.join(root_folder, d))
-    ]
-    logger.info(f"Found folders in {root_folder}: {folders}")
-    return folders
+    """Get immediate subdirectories (not recursive) from the given folder."""
+    try:
+        folders = [
+            str(item)
+            for item in Path(root_folder).iterdir()
+            if item.is_dir()
+        ]
+        logger.info(f"Found folders in {root_folder}: {folders}")
+        return folders
+    except Exception as e:
+        logger.error(f"Error getting folders from {root_folder}: {e}")
+        return []
 
-
-# Get only the files in the given directory (no subdirectories).
 def get_all_files(root_folder):
-    files = [
-        os.path.join(root_folder, f)
-        for f in os.listdir(root_folder)
-        if os.path.isfile(os.path.join(root_folder, f))
-    ]
-    print(f"Found files in {root_folder}: {files}")
-    return files
+    """Get only the files in the given directory (no subdirectories)."""
+    try:
+        files = [
+            str(item)
+            for item in Path(root_folder).iterdir()
+            if item.is_file()
+        ]
+        logger.info(f"Found files in {root_folder}: {files}")
+        return files
+    except Exception as e:
+        logger.error(f"Error getting files from {root_folder}: {e}")
+        return []
 
-
-# Get cloud path for a folder with the given name under a given cloud parent path.
 def getCpath(name, cparent):
     from utils.directoryHandler import DRIVE_DATA
 
     try:
         folder_data = DRIVE_DATA.get_directory(cparent)
-        print("folder 1 ", folder_data)
+        logger.debug(f"folder 1 {folder_data}")
         folder_data = convert_class_to_dict(folder_data, isObject=True, showtrash=False)
-        print("folder 2 ", folder_data)
-        print("folder items: ", folder_data["contents"].items())
+        logger.debug(f"folder 2 {folder_data}")
+        logger.debug(f"folder items: {folder_data['contents'].items()}")
         for id, data in folder_data["contents"].items():
             if data["name"] == name:
                 logger.info(
@@ -90,14 +94,9 @@ def getCpath(name, cparent):
         logger.error(f"Exception in getCpath: {e}")
     return False
 
-
 RUNNING_IDS = []
 TOTAL_UPLOAD = 0
-
-# Use an asyncio.Queue for upload tasks. Each task is a tuple:
-# (file, id, cpath, fname, file_size, b)
 upload_queue = asyncio.Queue()
-
 
 async def worker():
     """Worker to process upload tasks from the queue."""
@@ -109,20 +108,18 @@ async def worker():
 
         logger.info(f"Starting upload for '{fname}' with id {id}")
         try:
-            uploader = "XenZen"
-            await start_file_uploader2(file, id, cpath, fname, file_size, uploader)
+            uploader_name = "XenZen"  # Changed variable name to avoid conflict
+            await start_file_uploader2(file, id, cpath, fname, file_size, uploader_name)
             await asyncio.sleep(11)
         except Exception as e:
-            with open("failed.txt", "a") as f:
+            with open("failed.txt", "a", encoding='utf-8') as f:
                 f.write(f"{file}\n")
             logger.error(f"Failed to upload '{fname}' with id {id}: {e}")
         from utils.uploader import PROGRESS_CACHE
-
         PROGRESS_CACHE[id] = ("completed", file_size, file_size)
         logger.info(f"Completed upload for '{fname}' with id {id}")
         upload_queue.task_done()
-        print("Upload queue task done: ", upload_queue) 
-
+        logger.debug(f"Upload queue task done: {upload_queue}")
 
 async def limited_uploader_progress():
     global RUNNING_IDS, TOTAL_UPLOAD
@@ -130,6 +127,7 @@ async def limited_uploader_progress():
     logger.info("Starting upload progress tracking")
     no_progress_counter = 0
     loop = asyncio.get_running_loop()
+    
     with tqdm(
         total=TOTAL_UPLOAD,
         unit="B",
@@ -150,7 +148,6 @@ async def limited_uploader_progress():
                     complete += 1
             delta = done - prev_done
 
-            # Offload the blocking update to a thread.
             await loop.run_in_executor(None, pbar.update, delta)
             prev_done = done
 
@@ -171,15 +168,21 @@ async def limited_uploader_progress():
             await asyncio.sleep(5)
     logger.info("Upload progress tracking ended")
 
-
 async def start():
+    # Get user inputs
+    root_folder = input("Enter the path of the local folder to upload: ").strip()
+    root_name = input("Enter the name of the root folder in the Hi-Drive: ").strip()
+    uploader = input("Uploader Name?: ").strip()
+    
+    # Convert to Path object for consistent path handling
+    root_folder = str(Path(root_folder).resolve())
+    
     logger.info("Initializing clients...")
     await initialize_clients2()
 
     DRIVE_DATA = None
     while not DRIVE_DATA:
         from utils.directoryHandler import DRIVE_DATA
-
         await asyncio.sleep(3)
         logger.info("Waiting for DRIVE_DATA to be initialized...")
 
@@ -188,13 +191,11 @@ async def start():
 
     global RUNNING_IDS, TOTAL_UPLOAD
 
-    # Schedule upload tasks for all files in a folder.
     def upload_files(lpath, cpath):
         global TOTAL_UPLOAD
         files = get_all_files(lpath)
         for file in files:
-            fname = os.path.basename(file)
-            # Check if the file already exists in the cloud.
+            fname = Path(file).name
             new_cpath = getCpath(fname, cpath)
             if new_cpath:
                 logger.info(
@@ -204,7 +205,7 @@ async def start():
             try:
                 file_size = os.path.getsize(file)
             except Exception as e:
-                with open("failed.txt", "a") as f:
+                with open("failed.txt", "a", encoding='utf-8') as f:
                     f.write(f"{file}\n")
                 logger.error(f"Failed to get size for '{fname}': {e}")
                 continue
@@ -214,16 +215,11 @@ async def start():
                 f"Added file upload task for '{fname}' with id {id} in cloud path {cpath}"
             )
             TOTAL_UPLOAD += file_size
-            # Enqueue the upload task. 'b' is set to False.
             try:
                 upload_queue.put_nowait((file, id, cpath, fname, file_size, False))
-
             except asyncio.QueueFull:
                 logger.error(f"Queue full! Could not add '{fname}' to upload queue.")
-        print("upload queue no wait ", upload_queue)
 
-
-    # Create the root folder in the cloud if it does not exist.
     root_cpath = getCpath(root_name, "/")
     if root_cpath:
         logger.info(
@@ -234,42 +230,32 @@ async def start():
         root_cpath = DRIVE_DATA.new_folder("/", root_name, uploader)
         logger.info(f"Created root folder '{root_name}' in cloud at {root_cpath}")
 
-    # Upload files in the root local folder.
     upload_files(root_folder, root_cpath)
 
-    # Recursively create folders and schedule file uploads.
     def create_folders(lpath, cpath):
         folders = get_all_folders(lpath)
-        print("folders", folders)
+        logger.debug(f"Found subfolders: {folders}")
         for new_lpath in folders:
-            print("cpath ", cpath)
-            folder_name = os.path.basename(new_lpath)
-            print("folder name ", folder_name)
+            folder_name = Path(new_lpath).name
             new_cpath = getCpath(folder_name, cpath)
             if not new_cpath:
                 logger.info(
                     f"Creating cloud folder for local folder '{folder_name}' under {cpath}"
                 )
-                
                 new_cpath = DRIVE_DATA.new_folder(cpath, folder_name, uploader)
                 logger.info(f"Created cloud folder '{folder_name}' at {new_cpath}")
-            # Schedule uploads for files in the current folder.
             upload_files(new_lpath, new_cpath)
-            # Recursively process subfolders.
             create_folders(new_lpath, new_cpath)
             logger.info(f"Processed local folder: {new_lpath}")
 
     create_folders(root_folder, root_cpath)
     logger.info("All upload tasks have been scheduled. Waiting for completion...")
 
-    # Start worker tasks.
     workers = [asyncio.create_task(worker()) for _ in range(max_concurrent_tasks)]
     progress_task = asyncio.create_task(limited_uploader_progress())
 
-    # Wait until the upload queue is fully processed.
     await upload_queue.join()
 
-    # Cancel worker tasks.
     for w in workers:
         w.cancel()
     await asyncio.gather(*workers, return_exceptions=True)
@@ -282,7 +268,17 @@ async def start():
     await asyncio.sleep(1)
     sys.exit()
 
-
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(start())
+    if sys.platform == "win32":
+        # Windows-specific event loop policy
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(start())
+    except KeyboardInterrupt:
+        logger.info("Received keyboard interrupt. Shutting down gracefully...")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+    finally:
+        sys.exit()
