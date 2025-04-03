@@ -1,6 +1,6 @@
 root_folder = input("Enter the path of the local folder to upload: ").strip()
 root_name = input("Enter the name of the root folder in the Hi-Drive: ").strip()
-
+uploader = input("Uploader Name?: ").strip()
 import os
 import sys
 import asyncio
@@ -231,7 +231,7 @@ async def start():
         )
     else:
         logger.info(f"Creating root folder '{root_name}' in cloud")
-        root_cpath = DRIVE_DATA.new_folder("/", root_name)
+        root_cpath = DRIVE_DATA.new_folder("/", root_name, uploader)
         logger.info(f"Created root folder '{root_name}' in cloud at {root_cpath}")
 
     # Upload files in the root local folder.
@@ -241,7 +241,6 @@ async def start():
     def create_folders(lpath, cpath):
         folders = get_all_folders(lpath)
         print("folders", folders)
-        uploader="XenZen"
         for new_lpath in folders:
             print("cpath ", cpath)
             folder_name = os.path.basename(new_lpath)
