@@ -28,6 +28,9 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Random import get_random_bytes
 from base58 import b58encode
 from base64 import b64encode
+# Enable detailed pyrogram logging
+import pyrogram
+pyrogram.utils.setup_logger(level=logging.DEBUG)
 logger = Logger(__name__)
 PROGRESS_CACHE = {}
 STOP_TRANSMISSION = []
