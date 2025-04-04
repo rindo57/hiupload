@@ -394,6 +394,22 @@ async def start_file_uploader2(file_path, id, directory_path, filename, file_siz
     global PROGRESS_CACHE
     from utils.directoryHandler import DRIVE_DATA
 
+    logger.info(f"Attempting to open file: {file_path}")
+    
+    # Verify file exists and is accessible
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+        
+    if not os.access(file_path, os.R_OK):
+        raise PermissionError(f"No read permissions: {file_path}")
+
+    try:
+        # Test file opening
+        with open(file_path, 'rb') as f:
+            pass
+    except Exception as e:
+        raise IOError(f"File access failed: {str(e)}")
+
     logger.info(f"Uploading file {file_path} {id}")
     
     # Format media info using the provided function
@@ -452,13 +468,18 @@ async def start_file_uploader2(file_path, id, directory_path, filename, file_siz
     PROGRESS_CACHE[id] = ("running", 0, 0)
 
     # Upload the file and save its metadata
-    message: Message = await client.send_document(
-        STORAGE_CHANNEL,
-        file_path,
-        progress=progress_callback,
-        progress_args=(id, client, file_path),
-        disable_notification=True,
-    )
+    try:
+        message = await client.send_document(
+            STORAGE_CHANNEL,
+            file_path,
+            progress=progress_callback,
+            progress_args=(id, client, file_path),
+            disable_notification=True,
+            file_name=filename  # Explicitly set filename
+        )
+    except Exception as e:
+        logger.error(f"Pyrogram upload failed: {str(e)}")
+        raise
     size = (
         message.photo
         or message.document
