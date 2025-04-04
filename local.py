@@ -1,8 +1,3 @@
-root_folder = input("Enter the path of the local folder to upload: ").strip()
-# Or convert to raw string
-root_folder = os.path.normpath(root_folder)
-root_name = input("Enter the name of the root folder in the Hi-Drive: ").strip()
-uploader = input("Enter Uploader? ").strip()
 import os
 import sys
 import asyncio
@@ -14,6 +9,13 @@ from config import BOT_TOKENSX
 from utils.clients import initialize_clients2
 from utils.directoryHandler import getRandomID
 from utils.uploader import start_file_uploader2
+
+root_folder = input("Enter the path of the local folder to upload: ").strip()
+# Or convert to raw string
+root_folder = os.path.normpath(root_folder)
+root_name = input("Enter the name of the root folder in the Hi-Drive: ").strip()
+uploader = input("Enter Uploader? ").strip()
+
 
 # Configure logging: Log messages will be output to the console and saved in manager.log
 logging.basicConfig(
