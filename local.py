@@ -9,7 +9,9 @@ from config import BOT_TOKENSX
 from utils.clients import initialize_clients2
 from utils.directoryHandler import getRandomID
 from utils.uploader import start_file_uploader2
-
+# Enable detailed pyrogram logging
+import pyrogram
+pyrogram.utils.setup_logger(level=logging.DEBUG)
 root_folder = input("Enter the path of the local folder to upload: ").strip()
 # Or convert to raw string
 root_folder = os.path.normpath(root_folder)
@@ -118,33 +120,54 @@ async def worker():
     while True:
         try:
             file, id, cpath, fname, file_size, b = await upload_queue.get()
-            file = os.path.abspath(file)  # Convert to absolute path
-            logger.info(f"Attempting to upload file at absolute path: {file}")
+            file = os.path.abspath(file)
             
+            # Enhanced file verification
             if not os.path.exists(file):
-                logger.error(f"File not found at upload time: {file}")
-                with open("failed.txt", "a") as f:
-                    f.write(f"{file} (File missing at upload time)\n")
-                upload_queue.task_done()
+                logger.error(f"File not found: {file}")
                 continue
                 
-            logger.info(f"Starting upload for '{fname}' with id {id}")
+            if not os.access(file, os.R_OK):
+                logger.error(f"No read permissions: {file}")
+                continue
+                
             try:
-                uploader = "XenZen"
-                await start_file_uploader2(file, id, cpath, fname, file_size, uploader)
-                await asyncio.sleep(11)
+                # Test file opening
+                with open(file, 'rb') as f:
+                    pass
             except Exception as e:
+                logger.error(f"File access test failed: {file} - {str(e)}")
+                continue
+                
+            logger.info(f"Starting upload for {file} (Size: {file_size})")
+            
+            try:
+                # Create a temporary copy if original fails
+                temp_file = None
+                try:
+                    await start_file_uploader2(file, id, cpath, fname, file_size, uploader)
+                except Exception as e:
+                    logger.warning(f"First upload attempt failed, trying with temp copy: {str(e)}")
+                    import tempfile
+                    temp_dir = tempfile.mkdtemp()
+                    temp_file = os.path.join(temp_dir, os.path.basename(file))
+                    shutil.copy2(file, temp_file)
+                    await start_file_uploader2(temp_file, id, cpath, fname, file_size, uploader)
+            except Exception as e:
+                logger.error(f"Upload failed: {str(e)}")
                 with open("failed.txt", "a") as f:
                     f.write(f"{file}\n")
-                logger.error(f"Failed to upload '{fname}' with id {id}: {e}")
+            finally:
+                if temp_file and os.path.exists(temp_file):
+                    os.remove(temp_file)
+                    os.rmdir(temp_dir)
+                    
         except asyncio.CancelledError:
             break
             
         from utils.uploader import PROGRESS_CACHE
         PROGRESS_CACHE[id] = ("completed", file_size, file_size)
-        logger.info(f"Completed upload for '{fname}' with id {id}")
         upload_queue.task_done()
-
 async def limited_uploader_progress():
     global RUNNING_IDS, TOTAL_UPLOAD
     logger.info(f"Total upload size: {TOTAL_UPLOAD} bytes")
