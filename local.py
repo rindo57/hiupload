@@ -11,7 +11,6 @@ from utils.directoryHandler import getRandomID
 from utils.uploader import start_file_uploader2
 # Enable detailed pyrogram logging
 import pyrogram
-pyrogram.utils.setup_logger(level=logging.DEBUG)
 root_folder = input("Enter the path of the local folder to upload: ").strip()
 # Or convert to raw string
 root_folder = os.path.normpath(root_folder)
