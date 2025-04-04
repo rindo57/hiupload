@@ -18,12 +18,20 @@ uploader = input("Enter Uploader? ").strip()
 
 
 # Configure logging: Log messages will be output to the console and saved in manager.log
+# At the beginning of your script, after imports
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # Changed to DEBUG for more detailed logging
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(), logging.FileHandler("manager.log", mode="a")],
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("manager.log", mode="a")
+    ],
 )
 logger = logging.getLogger(__name__)
+
+# At the start of the main function:
+logger.debug(f"Root folder path: {os.path.abspath(root_folder)}")
+logger.debug(f"Root folder exists: {os.path.exists(root_folder)}")
 
 def convert_class_to_dict(data, isObject, showtrash=False):
     if isObject == True:
@@ -65,12 +73,15 @@ def get_all_folders(root_folder):
 
 # Get only the files in the given directory (no subdirectories).
 def get_all_files(root_folder):
-    files = [
-        os.path.normpath(os.path.join(root_folder, f))  # Normalize the path
-        for f in os.listdir(root_folder)
-        if os.path.isfile(os.path.join(root_folder, f))
-    ]
-    print(f"Found files in {root_folder}: {files}")
+    files = []
+    for f in os.listdir(root_folder):
+        file_path = os.path.normpath(os.path.join(root_folder, f))
+        if os.path.isfile(file_path):
+            files.append(file_path)
+            logger.debug(f"Found valid file: {file_path}")
+        else:
+            logger.debug(f"Skipping non-file: {file_path}")
+    logger.info(f"Found {len(files)} files in {root_folder}")
     return files
 
 
@@ -102,31 +113,37 @@ TOTAL_UPLOAD = 0
 # (file, id, cpath, fname, file_size, b)
 upload_queue = asyncio.Queue()
 
-
 async def worker():
     """Worker to process upload tasks from the queue."""
     while True:
         try:
             file, id, cpath, fname, file_size, b = await upload_queue.get()
+            file = os.path.abspath(file)  # Convert to absolute path
+            logger.info(f"Attempting to upload file at absolute path: {file}")
+            
+            if not os.path.exists(file):
+                logger.error(f"File not found at upload time: {file}")
+                with open("failed.txt", "a") as f:
+                    f.write(f"{file} (File missing at upload time)\n")
+                upload_queue.task_done()
+                continue
+                
+            logger.info(f"Starting upload for '{fname}' with id {id}")
+            try:
+                uploader = "XenZen"
+                await start_file_uploader2(file, id, cpath, fname, file_size, uploader)
+                await asyncio.sleep(11)
+            except Exception as e:
+                with open("failed.txt", "a") as f:
+                    f.write(f"{file}\n")
+                logger.error(f"Failed to upload '{fname}' with id {id}: {e}")
         except asyncio.CancelledError:
             break
-
-        logger.info(f"Starting upload for '{fname}' with id {id}")
-        try:
-            uploader = "XenZen"
-            await start_file_uploader2(file, id, cpath, fname, file_size, uploader)
-            await asyncio.sleep(11)
-        except Exception as e:
-            with open("failed.txt", "a") as f:
-                f.write(f"{file}\n")
-            logger.error(f"Failed to upload '{fname}' with id {id}: {e}")
+            
         from utils.uploader import PROGRESS_CACHE
-
         PROGRESS_CACHE[id] = ("completed", file_size, file_size)
         logger.info(f"Completed upload for '{fname}' with id {id}")
         upload_queue.task_done()
-        print("Upload queue task done: ", upload_queue) 
-
 
 async def limited_uploader_progress():
     global RUNNING_IDS, TOTAL_UPLOAD
@@ -198,33 +215,43 @@ async def start():
         files = get_all_files(lpath)
         for file in files:
             fname = os.path.basename(file)
-            # Check if the file already exists in the cloud.
+        # Verify the file exists before proceeding
+            if not os.path.exists(file):
+                logger.error(f"File not found: {file}")
+                with open("failed.txt", "a") as f:
+                    f.write(f"{file} (File not found)\n")
+                continue
+            
+        # Check if the file already exists in the cloud.
             new_cpath = getCpath(fname, cpath)
             if new_cpath:
                 logger.info(
                     f"Skipping upload for '{fname}' as it already exists in cloud at {new_cpath}"
                 )
                 continue
+            
             try:
                 file_size = os.path.getsize(file)
+                logger.info(f"Found file: {file} (Size: {file_size} bytes)")
             except Exception as e:
                 with open("failed.txt", "a") as f:
                     f.write(f"{file}\n")
                 logger.error(f"Failed to get size for '{fname}': {e}")
                 continue
+            
             id = getRandomID()
             RUNNING_IDS.append(id)
             logger.info(
                 f"Added file upload task for '{fname}' with id {id} in cloud path {cpath}"
             )
             TOTAL_UPLOAD += file_size
-            # Enqueue the upload task. 'b' is set to False.
+        
+        # Enqueue the upload task
             try:
                 upload_queue.put_nowait((file, id, cpath, fname, file_size, False))
-
+                logger.info(f"Successfully queued file: {file}")
             except asyncio.QueueFull:
                 logger.error(f"Queue full! Could not add '{fname}' to upload queue.")
-        print("upload queue no wait ", upload_queue)
 
 
     # Create the root folder in the cloud if it does not exist.
