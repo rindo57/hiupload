@@ -1,4 +1,6 @@
 root_folder = input("Enter the path of the local folder to upload: ").strip()
+# Or convert to raw string
+root_folder = os.path.normpath(root_folder)
 root_name = input("Enter the name of the root folder in the Hi-Drive: ").strip()
 uploader = input("Enter Uploader? ").strip()
 import os
@@ -62,7 +64,7 @@ def get_all_folders(root_folder):
 # Get only the files in the given directory (no subdirectories).
 def get_all_files(root_folder):
     files = [
-        os.path.join(root_folder, f)
+        os.path.normpath(os.path.join(root_folder, f))  # Normalize the path
         for f in os.listdir(root_folder)
         if os.path.isfile(os.path.join(root_folder, f))
     ]
