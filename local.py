@@ -4,6 +4,7 @@ import asyncio
 import time
 from tqdm import tqdm
 import logging
+import shutil  # Add at the top
 
 from config import BOT_TOKENSX
 from utils.clients import initialize_clients2
